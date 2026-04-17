@@ -69,46 +69,46 @@ theme_set(theme_modern())
 ```{r warning=FALSE}
 ###################### 数据准备 ######################
 
-df_raw <- list.files(file.path("../2_3_RawData"), pattern = "exp2_.*\\.csv$") %>%
-  # 对读取到的所有.out文件x都执行函数read.table
-  lapply(function(x)
-    read.csv(file.path("../2_3_RawData", x), header = TRUE)) %>%
-  # 读取被试人口学信息
-  lapply(
-    function(df)
-      mutate(
-        df,
-        gender = jsonlite::fromJSON(response[5]),
-        year = jsonlite::fromJSON(response[6])$Q0,
-        education = jsonlite::fromJSON(response[7])$Q0,
-        dist = view_dist_mm[9],
-        rt = as.numeric(rt),
-        success = as.character(success),
-        timeout = as.character(timeout),
-        correct = as.character(correct),
-        ismatch = as.character(ismatch),
-        correct = gsub("TRUE", "true", correct),
-        ismatch = tolower(ismatch),
-      )
-  ) %>%
-  bind_rows()
+# df_raw <- list.files(file.path("../2_3_RawData"), pattern = "exp2_.*\\.csv$") %>%
+#   # 对读取到的所有.out文件x都执行函数read.table
+#   lapply(function(x)
+#     read.csv(file.path("../2_3_RawData", x), header = TRUE)) %>%
+#   # 读取被试人口学信息
+#   lapply(
+#     function(df)
+#       mutate(
+#         df,
+#         gender = jsonlite::fromJSON(response[5]),
+#         year = jsonlite::fromJSON(response[6])$Q0,
+#         education = jsonlite::fromJSON(response[7])$Q0,
+#         dist = view_dist_mm[9],
+#         rt = as.numeric(rt),
+#         success = as.character(success),
+#         timeout = as.character(timeout),
+#         correct = as.character(correct),
+#         ismatch = as.character(ismatch),
+#         correct = gsub("TRUE", "true", correct),
+#         ismatch = tolower(ismatch),
+#       )
+#   ) %>%
+#   bind_rows()
 ```
 
 ```{r}
-# 计算平均LPD与视距
-
-df_dist <- df_raw%>%
-  dplyr::filter(trial_type == 'virtual-chinrest')%>%
-  dplyr::summarize(px2mm_m = mean(px2mm),
-          view_dist_mm_m = mean(view_dist_mm)
-          )%>%
-  # 计算视角
-  dplyr::mutate(
-    cross = 2 * atan((40 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
-    shape = 2 * atan((190 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
-    text_h = 2 * atan((80 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
-  )
-df_dist
+# # 计算平均LPD与视距
+# 
+# df_dist <- df_raw%>%
+#   dplyr::filter(trial_type == 'virtual-chinrest')%>%
+#   dplyr::summarize(px2mm_m = mean(px2mm),
+#           view_dist_mm_m = mean(view_dist_mm)
+#           )%>%
+#   # 计算视角
+#   dplyr::mutate(
+#     cross = 2 * atan((40 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
+#     shape = 2 * atan((190 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
+#     text_h = 2 * atan((80 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
+#   )
+# df_dist
 ```
 
 
@@ -116,127 +116,134 @@ df_dist
 ```{r}
 ###################### 数据清洗 ######################
 
-df <- df_raw %>%
-  dplyr::select(
-    subj_idx,
-    gender,    # 男0女1
-    year,
-    rt,
-    correct,    # 正确与否
-    key_press,    # 被试按键
-    shapes,    # 自变量Identity（图形所代表的身份）
-    paired_colors,    # 配对的颜色
-    ismatch,    # 自变量ismatch，match为1，mismatch为0
-    condition,    # 自变量任务相关性
-    trial_type,    # 插件类型
-  ) %>%
-  # 选择正式实验试次
-  dplyr::filter(trial_type == "psychophysics" &
-                  condition != "TR_prac" &
-                  condition != "TIR_prac") %>%
-  # 再次剔除无关变量
-  dplyr::mutate(
-    year = as.numeric(year),
-    year = 2025 - year,
-    acc = ifelse(correct == "true", 1, 0),
-    ismatch = ifelse(ismatch == "true", 1, 0),
-    TaskRelevance = case_when(
-      condition == "TR_main" ~ "TaskRelevant",
-      condition == "TIR_main" ~ "TaskIrrelevant"
-    ),
-    Identity = case_when(
-      shapes == "自我" ~ "self",
-      shapes == "朋友" ~ "friend",
-      shapes == "生人" ~ "stranger",
-    ),
-  ) %>%
-  dplyr::select(-trial_type, -correct, -condition, -shapes)
-
-
-df
-
-# length(unique(df$subj_idx))   # 查看被试总数
-# 39
+# df <- df_raw %>%
+#   dplyr::select(
+#     subj_idx,
+#     gender,    # 男0女1
+#     year,
+#     rt,
+#     correct,    # 正确与否
+#     key_press,    # 被试按键
+#     shapes,    # 自变量Identity（图形所代表的身份）
+#     paired_colors,    # 配对的颜色
+#     ismatch,    # 自变量ismatch，match为1，mismatch为0
+#     condition,    # 自变量任务相关性
+#     trial_type,    # 插件类型
+#   ) %>%
+#   # 选择正式实验试次
+#   dplyr::filter(trial_type == "psychophysics" &
+#                   condition != "TR_prac" &
+#                   condition != "TIR_prac") %>%
+#   # 再次剔除无关变量
+#   dplyr::mutate(
+#     year = as.numeric(year),
+#     year = 2025 - year,
+#     acc = ifelse(correct == "true", 1, 0),
+#     ismatch = ifelse(ismatch == "true", 1, 0),
+#     TaskRelevance = case_when(
+#       condition == "TR_main" ~ "TaskRelevant",
+#       condition == "TIR_main" ~ "TaskIrrelevant"
+#     ),
+#     Identity = case_when(
+#       shapes == "自我" ~ "self",
+#       shapes == "朋友" ~ "friend",
+#       shapes == "生人" ~ "stranger",
+#     ),
+#   ) %>%
+#   dplyr::select(-trial_type, -correct, -condition, -shapes)
+# 
+# 
+# df
+# 
+# write.csv(df, file = "exp2_raw.csv", row.names = FALSE, fileEncoding = "UTF-8")
+# 
+# # length(unique(df$subj_idx))   # 查看被试总数
+# # 39
 
 ```
 
 ## 3、数据收集过程代码
 
 ```{r}
-# 试次数&准确率检查
-df.check <- df %>% 
-  dplyr::group_by(subj_idx) %>%
-  # dplyr::group_by(subj_idx, TaskRelevance, Identity, ismatch) %>%
-  dplyr::summarise(
-    N = length(acc), 
-    N_crrct = sum(acc),
-    ACC = sum(acc)/length(acc),
-    .groups = 'drop'
-    ) 
-
-df.check
+# # 试次数&准确率检查
+# df.check <- df %>% 
+#   dplyr::group_by(subj_idx) %>%
+#   # dplyr::group_by(subj_idx, TaskRelevance, Identity, ismatch) %>%
+#   dplyr::summarise(
+#     N = length(acc), 
+#     N_crrct = sum(acc),
+#     ACC = sum(acc)/length(acc),
+#     .groups = 'drop'
+#     ) 
+# 
+# df.check
 ```
 
 ```{r}
-# 被试疲劳/练习效应检查
-# 会存在练习效应，中后段会出现疲劳效应，需要提醒被试注意休息，以及要求又快又准，我们同时追求速度和准确性！！
-df.fatigue <- df %>%
-  dplyr::group_by(subj_idx, TaskRelevance) %>%
-  dplyr::mutate(trial_index = row_number(),
-         phrase = case_when(
-           trial_index <= round(n() / 3) ~ "前期",
-           trial_index >  round(n() / 3) & trial_index <= round(2 * n() / 3) ~ "中期",
-           TRUE ~"后期"),
-         phrase = factor(phrase, levels = c("前期", "中期", "后期"))
-         ) %>%
-  dplyr::group_by(subj_idx, TaskRelevance, phrase) %>%
-  dplyr::summarise(
-    mean_rt = mean(rt, na.rm = TRUE),
-    sd_rt = sd(rt, na.rm = TRUE),
-    n_trials = n()
-  ) 
-
-df.fatigue
+# # 被试疲劳/练习效应检查
+# # 会存在练习效应，中后段会出现疲劳效应，需要提醒被试注意休息，以及要求又快又准，我们同时追求速度和准确性！！
+# df.fatigue <- df %>%
+#   dplyr::group_by(subj_idx, TaskRelevance) %>%
+#   dplyr::mutate(trial_index = row_number(),
+#          phrase = case_when(
+#            trial_index <= round(n() / 3) ~ "前期",
+#            trial_index >  round(n() / 3) & trial_index <= round(2 * n() / 3) ~ "中期",
+#            TRUE ~"后期"),
+#          phrase = factor(phrase, levels = c("前期", "中期", "后期"))
+#          ) %>%
+#   dplyr::group_by(subj_idx, TaskRelevance, phrase) %>%
+#   dplyr::summarise(
+#     mean_rt = mean(rt, na.rm = TRUE),
+#     sd_rt = sd(rt, na.rm = TRUE),
+#     n_trials = n()
+#   ) 
+# 
+# df.fatigue
 ```
 
 ```{r}
-df.norm <- df %>%
-  dplyr::filter(subj_idx == 10) %>%
-  dplyr::mutate(
-    Identity = factor(Identity, levels = c("self", "friend", "stranger")),
-    ismatch = case_when(ismatch == 1 ~ "match", ismatch == 0 ~ "mismatch", )
-  ) %>%
-  dplyr::group_by(subj_idx, TaskRelevance, Identity, ismatch) %>%
-  tidyr::drop_na(rt) %>%
-  dplyr::summarise(
-    rt.mean = mean(rt, na.rm = TRUE),
-    rt.sd = sd(rt, na.rm = TRUE),
-    density = dnorm(x = rt, mean = rt.mean, sd = rt.sd),
-    rt = rt,
-  )
-df.norm
 
-
-p_rt_subj <- ggplot2::ggplot(df.norm, aes(x = rt, y = density, color = Identity)) +
-  ggplot2::geom_line() +
-  ggplot2::geom_point() +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~ subj_idx + TaskRelevance + ismatch, ncol = 4) +
-  ggplot2::theme(
-    legend.position = "right",
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA)
-  ) +
-  ggplot2::labs(title = "Reaction time distribution of each subject", x = "Reaction time (ms)", y = "Density")
-
-p_rt_subj
+# df.norm <- df %>%
+#   dplyr::filter(subj_idx == 10) %>%
+#   dplyr::mutate(
+#     Identity = factor(Identity, levels = c("self", "friend", "stranger")),
+#     ismatch = case_when(ismatch == 1 ~ "match", ismatch == 0 ~ "mismatch", )
+#   ) %>%
+#   dplyr::group_by(subj_idx, TaskRelevance, Identity, ismatch) %>%
+#   tidyr::drop_na(rt) %>%
+#   dplyr::summarise(
+#     rt.mean = mean(rt, na.rm = TRUE),
+#     rt.sd = sd(rt, na.rm = TRUE),
+#     density = dnorm(x = rt, mean = rt.mean, sd = rt.sd),
+#     rt = rt,
+#   )
+# df.norm
+# 
+# 
+# p_rt_subj <- ggplot2::ggplot(df.norm, aes(x = rt, y = density, color = Identity)) +
+#   ggplot2::geom_line() +
+#   ggplot2::geom_point() +
+#   ggplot2::theme_minimal() +
+#   ggplot2::facet_wrap(~ subj_idx + TaskRelevance + ismatch, ncol = 4) +
+#   ggplot2::theme(
+#     legend.position = "right",
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank(),
+#     panel.border = element_rect(color = "black", fill = NA)
+#   ) +
+#   ggplot2::labs(title = "Reaction time distribution of each subject", x = "Reaction time (ms)", y = "Density")
+# 
+# p_rt_subj
 
 ```
 
 
 数据清洗
 ```{r}
+
+# 读取原始数据
+df <- read.csv("exp2_raw.csv", fileEncoding = "UTF-8")
+
 # 正确率低于0.7的被试
 df.excld.sub <-  df %>%
         dplyr::group_by(subj_idx) %>%
@@ -471,10 +478,10 @@ plot_rt_m
 ```
 
 ```{r}
-# 关闭所有异常的绘图设备（清空错乱状态）
-graphics.off()  
-# 重新打开IDE的默认绘图设备（RStudio会自动关联Plots面板）
-dev.new()    
+# # 关闭所有异常的绘图设备（清空错乱状态）
+# graphics.off()  
+# # 重新打开IDE的默认绘图设备（RStudio会自动关联Plots面板）
+# dev.new()    
 ```
 
 
@@ -698,43 +705,13 @@ df.tir.trial <- df.v.trial %>%
 ## 1、任务有关RT
 ### （1）模型拟合
 ```{r}
-# # 使用ismatch_num（-0.5，0.5）拟合RT模型
-# var_both_tr_rt_model <- df.tr.trial %>%
-#   dplyr::mutate(rt_sec = rt / 1000) %>%
-#   dplyr::filter(acc == 1) %>%         # only correct trials
-#   brms::brm(
-#     rt_sec ~ Identity * ismatch_num +
-#       (Identity * ismatch_num | subj_idx),
-#     family = lognormal(),
-#     data = .,
-#     chains = 4,
-#     warmup = 1000,
-#     iter = 5000,
-#     thin = 1,
-#     control = list(adapt_delta = .95),
-#     cores = parallel::detectCores(),
-#     backend = 'cmdstanr',
-#     save_pars = save_pars(all = TRUE),
-#     file = file.path(curDir, "glmmModels/TR_RT_0.5")
-#   )
-# 
-# # 数据类型以及编码值
-# # rt_sec：数值型，取值范围为RT正常范围
-# # Identity：因子，自我为基线，取值为自我、朋友、生人
-# # ismatch_num：数值，值为-0.5（不匹配），0.5（匹配）
-# # subj_idx：数值
-# 
-# summary(var_both_tr_rt_model)
-```
-
-```{r}
-# 使用ismatch（0，1）拟合RT模型
+# 使用ismatch_num（-0.5，0.5）拟合RT模型
 var_both_tr_rt_model <- df.tr.trial %>%
   dplyr::mutate(rt_sec = rt / 1000) %>%
   dplyr::filter(acc == 1) %>%         # only correct trials
   brms::brm(
-    rt_sec ~ Identity * ismatch +
-      (Identity * ismatch | subj_idx),
+    rt_sec ~ Identity * ismatch_num +
+      (Identity * ismatch_num | subj_idx),
     family = lognormal(),
     data = .,
     chains = 4,
@@ -745,17 +722,47 @@ var_both_tr_rt_model <- df.tr.trial %>%
     cores = parallel::detectCores(),
     backend = 'cmdstanr',
     save_pars = save_pars(all = TRUE),
-    file = file.path(curDir, "glmmModels/TR_RT_1")
+    file = file.path(curDir, "glmmModels/TR_RT_0.5")
   )
 
 # 数据类型以及编码值
 # rt_sec：数值型，取值范围为RT正常范围
 # Identity：因子，自我为基线，取值为自我、朋友、生人
-# ismatch：数值，值为0（不匹配），1（匹配）
+# ismatch_num：数值，值为-0.5（不匹配），0.5（匹配）
 # subj_idx：数值
 
-
 summary(var_both_tr_rt_model)
+```
+
+```{r}
+# # 使用ismatch（0，1）拟合RT模型
+# var_both_tr_rt_model <- df.tr.trial %>%
+#   dplyr::mutate(rt_sec = rt / 1000) %>%
+#   dplyr::filter(acc == 1) %>%         # only correct trials
+#   brms::brm(
+#     rt_sec ~ Identity * ismatch +
+#       (Identity * ismatch | subj_idx),
+#     family = lognormal(),
+#     data = .,
+#     chains = 4,
+#     warmup = 1000,
+#     iter = 5000,
+#     thin = 1,
+#     control = list(adapt_delta = .95),
+#     cores = parallel::detectCores(),
+#     backend = 'cmdstanr',
+#     save_pars = save_pars(all = TRUE),
+#     file = file.path(curDir, "glmmModels/TR_RT_1")
+#   )
+# 
+# # 数据类型以及编码值
+# # rt_sec：数值型，取值范围为RT正常范围
+# # Identity：因子，自我为基线，取值为自我、朋友、生人
+# # ismatch：数值，值为0（不匹配），1（匹配）
+# # subj_idx：数值
+# 
+# 
+# summary(var_both_tr_rt_model)
 
 # 固定效应
 #                      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
@@ -800,12 +807,12 @@ target_pars <- c(
   "b_Intercept",
   "b_Identityfriend",
   "b_Identitystranger",
-  "b_ismatch",
-  "b_Identityfriend:ismatch",
-  "b_Identitystranger:ismatch"
-  # "b_ismatch_num",
-  # "b_Identityfriend:ismatch_num",
-  # "b_Identitystranger:ismatch_num"
+  # "b_ismatch",
+  # "b_Identityfriend:ismatch",
+  # "b_Identitystranger:ismatch"
+  "b_ismatch_num",
+  "b_Identityfriend:ismatch_num",
+  "b_Identitystranger:ismatch_num"
   )
 
 
@@ -904,12 +911,12 @@ df_tr_rt_pop <- var_both_tr_rt_model %>%
     Self_NonMatch = Intercept,   #  self和nonmatch被编码为0              
     Friend_NonMatch = Intercept  + Identityfriend,
     Stranger_NonMatch = Intercept  + Identitystranger,
-    Self_Match = Intercept + ismatch, 
-    Friend_Match = Intercept + ismatch + Identityfriend + `Identityfriend:ismatch`,
-    Stranger_Match = Intercept + ismatch + Identitystranger + `Identitystranger:ismatch`
-    # Self_Match = Intercept + ismatch_num,             
-    # Friend_Match = Intercept + ismatch_num + Identityfriend + `Identityfriend:ismatch_num`,
-    # Stranger_Match = Intercept + ismatch_num + Identitystranger + `Identitystranger:ismatch_num`
+    # Self_Match = Intercept + ismatch, 
+    # Friend_Match = Intercept + ismatch + Identityfriend + `Identityfriend:ismatch`,
+    # Stranger_Match = Intercept + ismatch + Identitystranger + `Identitystranger:ismatch`
+    Self_Match = Intercept + ismatch_num,
+    Friend_Match = Intercept + ismatch_num + Identityfriend + `Identityfriend:ismatch_num`,
+    Stranger_Match = Intercept + ismatch_num + Identitystranger + `Identitystranger:ismatch_num`
     )%>%
   dplyr::select(`.chain`, `.iteration`, `.draw`,
                 Self_Match, Friend_Match, Stranger_Match,
@@ -965,7 +972,7 @@ df_tr_rt_fixed <- df_tr_rt_pop%>%
   dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Friend', 'Stranger')),
                 ismatch = factor(ismatch, levels = c('Match', 'NonMatch')))
 
-summary(df_tr_rt_fixed)
+df_tr_rt_fixed
 ```
 
 ```{r}
@@ -1422,30 +1429,30 @@ p_tr_sdt_diff
 ## 3、任务无关RT
 ### （1）模型拟合
 ```{r}
-# # fit a three-level hierarchical model for RT, didn't specify the prior, lognormal, effective coding
-# var_both_tir_rt_model <- df.tir.trial %>%
-#   dplyr::mutate(rt_sec = rt/1000)%>%
-#         dplyr::filter(acc == 1) %>%         # only correct trials
-#         brms::brm(rt_sec ~ Identity* ismatch_num + 
-#                           (Identity* ismatch_num | subj_idx),
-#                   family=lognormal(),
-#                   data = .,
-#                   chains = 4,
-#                   warmup = 1000,
-#                   iter = 5000,
-#                   thin = 1,
-#                   control = list(adapt_delta = .95),
-#                   cores = parallel::detectCores(),
-#                   backend = 'cmdstanr',  # with cmdstanr
-#                   save_pars = save_pars(all = TRUE),
-#                   file = file.path(curDir, "glmmModels/TIR_RT_0.5")
-#                   )
-# 
-# # rt_sec:数值
-# # Identity：因子，自我基线
-# # ismatch_num：数值，-0.5（不匹配），0.5（匹配），ismatch：自我条件下，不匹配向匹配变化
-# 
-# summary(var_both_tir_rt_model)
+# fit a three-level hierarchical model for RT, didn't specify the prior, lognormal, effective coding
+var_both_tir_rt_model <- df.tir.trial %>%
+  dplyr::mutate(rt_sec = rt/1000)%>%
+        dplyr::filter(acc == 1) %>%         # only correct trials
+        brms::brm(rt_sec ~ Identity* ismatch_num +
+                          (Identity* ismatch_num | subj_idx),
+                  family=lognormal(),
+                  data = .,
+                  chains = 4,
+                  warmup = 1000,
+                  iter = 5000,
+                  thin = 1,
+                  control = list(adapt_delta = .95),
+                  cores = parallel::detectCores(),
+                  backend = 'cmdstanr',  # with cmdstanr
+                  save_pars = save_pars(all = TRUE),
+                  file = file.path(curDir, "glmmModels/TIR_RT_0.5")
+                  )
+
+# rt_sec:数值
+# Identity：因子，自我基线
+# ismatch_num：数值，-0.5（不匹配），0.5（匹配），ismatch：自我条件下，不匹配向匹配变化
+
+summary(var_both_tir_rt_model)
 # # Regression Coefficients:
 # #                          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
 # # Intercept                   -0.36      0.02    -0.41    -0.32 1.01      919     2228
@@ -1458,23 +1465,23 @@ p_tr_sdt_diff
 
 ```{r}
 # fit a three-level hierarchical model for RT, didn't specify the prior, lognormal, effective coding
-var_both_tir_rt_model <- df.tir.trial %>%
-  dplyr::mutate(rt_sec = rt/1000)%>%
-        dplyr::filter(acc == 1) %>%         # only correct trials
-        brms::brm(rt_sec ~ Identity* ismatch +
-                          (Identity* ismatch | subj_idx),
-                  family=lognormal(),
-                  data = .,
-                  chains = 4,
-                  warmup = 1000,
-                  iter = 5000, # 5000
-                  thin = 1,
-                  control = list(adapt_delta = .95),
-                  cores = parallel::detectCores(),
-                  backend = 'cmdstanr',  # with cmdstanr
-                  save_pars = save_pars(all = TRUE),
-                  file = file.path(curDir, "glmmModels/TIR_RT_1")
-                  )
+# var_both_tir_rt_model <- df.tir.trial %>%
+#   dplyr::mutate(rt_sec = rt/1000)%>%
+#         dplyr::filter(acc == 1) %>%         # only correct trials
+#         brms::brm(rt_sec ~ Identity* ismatch +
+#                           (Identity* ismatch | subj_idx),
+#                   family=lognormal(),
+#                   data = .,
+#                   chains = 4,
+#                   warmup = 1000,
+#                   iter = 5000, # 5000
+#                   thin = 1,
+#                   control = list(adapt_delta = .95),
+#                   cores = parallel::detectCores(),
+#                   backend = 'cmdstanr',  # with cmdstanr
+#                   save_pars = save_pars(all = TRUE),
+#                   file = file.path(curDir, "glmmModels/TIR_RT_1")
+#                   )
 
 # rt_sec:数值
 # Identity：因子，自我基线
@@ -1504,12 +1511,12 @@ target_pars <- c(
   "b_Intercept",
   "b_Identityfriend",
   "b_Identitystranger",
-  "b_ismatch",
-  "b_Identityfriend:ismatch",
-  "b_Identitystranger:ismatch"
-  # "b_ismatch_num",
-  # "b_Identityfriend:ismatch_num",
-  # "b_Identitystranger:ismatch_num"
+  # "b_ismatch",
+  # "b_Identityfriend:ismatch",
+  # "b_Identitystranger:ismatch"
+  "b_ismatch_num",
+  "b_Identityfriend:ismatch_num",
+  "b_Identitystranger:ismatch_num"
   )
 
 trace_plot <- bayesplot::mcmc_trace(
@@ -1594,12 +1601,12 @@ df_tir_rt_pop <- var_both_tir_rt_model %>%
     Self_NonMatch = Intercept,   #  self和nonmatch被编码为0              
     Friend_NonMatch = Intercept  + Identityfriend,
     Stranger_NonMatch = Intercept  + Identitystranger,
-    Self_Match = Intercept + ismatch,             
-    Friend_Match = Intercept + ismatch + Identityfriend + `Identityfriend:ismatch`,
-    Stranger_Match = Intercept + ismatch + Identitystranger + `Identitystranger:ismatch`
-    # Self_Match = Intercept + ismatch_num,             
-    # Friend_Match = Intercept + ismatch_num + Identityfriend + `Identityfriend:ismatch_num`,
-    # Stranger_Match = Intercept + ismatch_num + Identitystranger + `Identitystranger:ismatch_num`
+    # Self_Match = Intercept + ismatch,             
+    # Friend_Match = Intercept + ismatch + Identityfriend + `Identityfriend:ismatch`,
+    # Stranger_Match = Intercept + ismatch + Identitystranger + `Identitystranger:ismatch`
+    Self_Match = Intercept + ismatch_num,
+    Friend_Match = Intercept + ismatch_num + Identityfriend + `Identityfriend:ismatch_num`,
+    Stranger_Match = Intercept + ismatch_num + Identitystranger + `Identitystranger:ismatch_num`
     )%>%
   dplyr::select(`.chain`, `.iteration`, `.draw`,
                 Self_Match, Friend_Match, Stranger_Match,
@@ -1655,6 +1662,8 @@ df_tir_rt_fixed <- df_tir_rt_pop%>%
   tidyr::separate(Parameter, c('Identity', 'ismatch')) %>%
   dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Friend', 'Stranger')),
                 ismatch = factor(ismatch, levels = c('Match', 'NonMatch')))
+
+df_tir_rt_fixed
 ```
 
 ```{r}
@@ -1959,6 +1968,8 @@ df_tir_sdt_fixed <- df_tir_sdt_pop%>%
   tidyr::separate(Parameter, c('params', 'Identity')) %>%
   dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Friend', 'Stranger')),
                 params = factor(params, levels = c('c', 'dprime')))
+
+df_tir_sdt_fixed
 ```
 
 ```{r}
@@ -2076,21 +2087,23 @@ p_tir_sdt_diff
 ## 5、差异的差异计算与推断统计
 ```{r}
 
+# RT对比
+
 # 1. 给df_tr添加标识+取4-9列
-df_tr_sub <- df_tr_rt_pop_diff_wide %>%
+df_tr_rt_diff <- df_tr_rt_pop_diff_wide %>%
   dplyr::select(4:9) %>%  # 提取4-9列
   dplyr::mutate(TaskRelevance = "TR")  # 标注为TR
 
 # 2. 给df_tir添加标识+取4-9列
-df_tir_sub <- df_tir_rt_pop_diff_wide %>%
+df_tir_rt_diff <- df_tir_rt_pop_diff_wide %>%
   dplyr::select(4:9) %>%  # 提取4-9列
   dplyr::mutate(TaskRelevance = "TIR")  # 标注为TIR
 
 # 3. 合并两个子数据框
-combined_df <- dplyr::bind_rows(df_tr_sub, df_tir_sub)
+df_rt_diff <- dplyr::bind_rows(df_tr_rt_diff, df_tir_rt_diff)
 
 # 4. 计算匹配条件下差异的差异
-df_diff_diff <- combined_df %>%
+df_rt_diff_diff <- df_rt_diff %>%
   tidyr::pivot_longer(
     cols = -c(TaskRelevance),
     names_to = "diff",  
@@ -2109,36 +2122,69 @@ df_diff_diff <- combined_df %>%
     values_from = RT      
   )%>%
   dplyr::mutate(
-    diff_dfff_SF = TR_diff_SF_Match - TIR_diff_SF_Match,
-    diff_dfff_SStr = TR_diff_SStr_Match - TIR_diff_SStr_Match,
-    diff_dfff_FStr = TR_diff_FStr_Match - TIR_diff_FStr_Match
+    diff_dfff_SF_match = TR_diff_SF_Match - TIR_diff_SF_Match,
+    diff_dfff_SStr_match = TR_diff_SStr_Match - TIR_diff_SStr_Match,
+    diff_dfff_FStr_match = TR_diff_FStr_Match - TIR_diff_FStr_Match,
+    diff_dfff_SF_nonmatch = TR_diff_SF_NonMatch - TIR_diff_SF_NonMatch,
+    diff_dfff_SStr_nonmatch = TR_diff_SStr_NonMatch - TIR_diff_SStr_NonMatch,
+    diff_dfff_FStr_nonmatch = TR_diff_FStr_NonMatch - TIR_diff_FStr_NonMatch
   ) %>%
-  dplyr::select(diff_dfff_SF, diff_dfff_SStr, diff_dfff_FStr)   
+  dplyr::select(diff_dfff_SF_match, diff_dfff_SStr_match, diff_dfff_FStr_match, diff_dfff_SF_nonmatch, diff_dfff_SStr_nonmatch, diff_dfff_FStr_nonmatch) 
 
 
-df_diff_diff
+df_rt_diff_diff
+
+bayestestR::sexit(df_rt_diff_diff)
 ```
+
 
 ```{r}
-# 各条件中位数及可信区间
+# dprime对比
 
-## 匹配条件
-med_tir_rt_Self_Match<- round(median(df$diff_dfff_SF), digits = 2)
-ll_tir_rt_Self_Match<- round(df_diff_diff$CI_low[df_diff_diff$Identity == 'Self' & df_diff_diff$ismatch == 'Match'], digits = 2)
-ul_tir_rt_Self_Match<- round(df_diff_diff$CI_high[df_diff_diff$Identity == 'Self' & df_diff_diff$ismatch == 'Match'], digits = 2)
+# 1. 给df_tr添加标识+取4-9列
+df_tr_sdt_diff <- df_tr_sdt_pop_diff_wide %>%
+  dplyr::select(7:9) %>%  # 提取4-9列
+  dplyr::mutate(TaskRelevance = "TR")  # 标注为TR
 
-med_tir_rt_Friend_Match<- round(median(df$diff_dfff_SStr), digits = 2)
-ll_tir_rt_Friend_Match<- round(df_diff_diff$CI_low[df_diff_diff$Identity == 'Friend' & df_diff_diff$ismatch == 'Match'], digits = 2)
-ul_tir_rt_Friend_Match<- round(df_diff_diff$CI_high[df_diff_diff$Identity == 'Friend' & df_diff_diff$ismatch == 'Match'], digits = 2)
+# 2. 给df_tir添加标识+取4-9列
+df_tir_sdt_diff <- df_tir_sdt_pop_diff_wide %>%
+  dplyr::select(7:9) %>%  # 提取4-9列
+  dplyr::mutate(TaskRelevance = "TIR")  # 标注为TIR
 
-med_tir_rt_Stranger_Match<- round(median(df$diff_dfff_FStr), digits = 2)
-ll_tir_rt_Stranger_Match<- round(df_diff_diff$CI_low[df_diff_diff$Identity == 'Stranger' & df_diff_diff$ismatch == 'Match'], digits = 2)
-ul_tir_rt_Stranger_Match<- round(df_diff_diff$CI_high[df_diff_diff$Identity == 'Stranger' & df_diff_diff$ismatch == 'Match'], digits = 2)
+# 3. 合并两个子数据框
+df_sdt_diff <- dplyr::bind_rows(df_tr_sdt_diff, df_tir_sdt_diff)
+
+# 4. 计算匹配条件下差异的差异
+df_sdt_diff_diff <- df_sdt_diff %>%
+  tidyr::pivot_longer(
+    cols = -c(TaskRelevance),
+    names_to = "diff",  
+    values_to = "dprime" 
+  )%>%
+  tidyr::unite(
+    col = "condition",
+    TaskRelevance, diff, 
+    sep = "_"
+  )%>%
+  dplyr::group_by(condition) %>%
+  dplyr::mutate(obs_id = row_number()) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(
+    names_from = condition,  
+    values_from = dprime      
+  )%>%
+  dplyr::mutate(
+    diff_dfff_SF_dprm = TR_diff_SF_dprm - TIR_diff_SF_dprm,
+    diff_dfff_SStr_dprm = TR_diff_SStr_dprm - TIR_diff_SStr_dprm
+  ) %>%
+  dplyr::select(diff_dfff_SF_dprm, diff_dfff_SStr_dprm) 
+
+
+df_sdt_diff_diff
+
+bayestestR::sexit(df_sdt_diff_diff)
 ```
 
-```{r}
-bayestestR::sexit(df_diff_diff)
-```
 
 
 

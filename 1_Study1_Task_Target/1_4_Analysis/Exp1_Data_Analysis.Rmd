@@ -50,105 +50,110 @@ theme_set(theme_modern())
 # 数据准备
 ## 1、读取数据
 ```{r warning=FALSE}
-# 数据合并：将所有被试数据合并到一个数据框中
-df_raw <- list.files(file.path("../1_3_RawData"), pattern = "exp1_.*\\.csv$") %>%   # 返回指定路径下，符合正则表达式的文件名
-  lapply(function(x)
-    read.csv(file.path("../1_3_RawData", x), header = TRUE)) %>%   # 对每个文件名执行构建路径、读取文件、存储为数据框，最终返回一个列表的操作
-  lapply(
-    function(df)
-      dplyr::mutate(
-        df,
-        subj_idx = as.numeric(jsonlite::fromJSON(response[5])$Q0),   # 将 JSON 格式的字符串转换为 R 对象
-        gender = jsonlite::fromJSON(response[6]),
-        year = jsonlite::fromJSON(response[7])$Q0,
-        education = jsonlite::fromJSON(response[8])$Q0,
-        dist = view_dist_mm[9],           # 被试与屏幕的距离
-        rt = as.numeric(rt),
-        success = as.character(success),
-        timeout = as.character(timeout),
-        correct = as.character(correct),
-        correct = gsub("TRUE", "true", correct),
-        RightLable = as.character(RightLable)
-      )
-  ) %>%
-  bind_rows()
+# # 数据合并：将所有被试数据合并到一个数据框中
+# df_raw <- list.files(file.path("../1_3_RawData"), pattern = "exp1_.*\\.csv$") %>%   # 返回指定路径下，符合正则表达式的文件名
+#   lapply(function(x)
+#     read.csv(file.path("../1_3_RawData", x), header = TRUE)) %>%   # 对每个文件名执行构建路径、读取文件、存储为数据框，最终返回一个列表的操作
+#   lapply(
+#     function(df)
+#       dplyr::mutate(
+#         df,
+#         subj_idx = as.numeric(jsonlite::fromJSON(response[5])$Q0),   # 将 JSON 格式的字符串转换为 R 对象
+#         gender = jsonlite::fromJSON(response[6]),
+#         year = jsonlite::fromJSON(response[7])$Q0,
+#         education = jsonlite::fromJSON(response[8])$Q0,
+#         dist = view_dist_mm[9],           # 被试与屏幕的距离
+#         rt = as.numeric(rt),
+#         success = as.character(success),
+#         timeout = as.character(timeout),
+#         correct = as.character(correct),
+#         correct = gsub("TRUE", "true", correct),
+#         RightLable = as.character(RightLable)
+#       )
+#   ) %>%
+#   bind_rows()
 
 ```
 
 ```{r}
-# 计算平均LPD与视距
-
-df_dist <- df_raw%>%
-  dplyr::filter(trial_type == 'virtual-chinrest')%>%
-  dplyr::summarize(px2mm_m = mean(px2mm),
-          view_dist_mm_m = mean(view_dist_mm)
-          )%>%
-  # 计算视角
-  dplyr::mutate(
-    cross = 2 * atan((40 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
-    shape = 2 * atan((190 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
-    text_h = 2 * atan((80 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
-  )
-df_dist
+# # 计算平均LPD与视距
+# 
+# df_dist <- df_raw%>%
+#   dplyr::filter(trial_type == 'virtual-chinrest')%>%
+#   dplyr::summarize(px2mm_m = mean(px2mm),
+#           view_dist_mm_m = mean(view_dist_mm)
+#           )%>%
+#   # 计算视角
+#   dplyr::mutate(
+#     cross = 2 * atan((40 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
+#     shape = 2 * atan((190 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
+#     text_h = 2 * atan((80 / px2mm_m) / (2 * view_dist_mm_m)) * (180/pi),
+#   )
+# df_dist
 ```
 
 ## 2、数据清洗
 ```{r}
-df <- df_raw %>%
-  # 排除预实验数据，1-30为pilot data; 1-24为pilot version 1，25-30为pilot version 2
-  filter(!(subj_idx %in% 1:30)) %>%
-  select(
-    subj_idx,
-    gender,    # 男0女1
-    year,
-    rt,
-    correct_response,
-    correct,
-    key_press,
-    word,
-    shape,
-    condition,
-    trial_type,
-  ) %>%
-  # 排除练习试次
-  dplyr::filter(
-    trial_type == "psychophysics" &
-      condition != "prac_matching_task" &
-      condition != "prac_classify_self" &
-      condition != "prac_classify_friend" &
-      condition != "prac_classify_stranger"
-  ) %>%
-  mutate(
-    year = as.numeric(year),
-    year = 2025 - year,
-    acc = ifelse(correct == "true", 1, 0),
-    Identity = case_when(
-      shape == "自我" ~ "self",
-      shape == "朋友" ~ "friend",
-      shape == "生人" ~ "stranger",
-    ),
-    Label = case_when(
-      word == "自我" ~ "self",
-      word == "朋友" ~ "friend",
-      word == "生人" ~ "stranger",
-    ),
-    ismatch = ifelse(Identity == Label, 1, 0)
-  ) %>%
-  # 剔除无关变量
-  select(
-    -trial_type, 
-    -correct,
-    -shape,
-    -word,
-    )
-df
-
-# length(unique(df$subj_idx))   # 查看被试总数
-# 60
+# df <- df_raw %>%
+#   # 排除预实验数据，1-30为pilot data; 1-24为pilot version 1，25-30为pilot version 2
+#   filter(!(subj_idx %in% 1:30)) %>%
+#   select(
+#     subj_idx,
+#     gender,    # 男0女1
+#     year,
+#     rt,
+#     correct_response,
+#     correct,
+#     key_press,
+#     word,
+#     shape,
+#     condition,
+#     trial_type,
+#   ) %>%
+#   # 排除练习试次
+#   dplyr::filter(
+#     trial_type == "psychophysics" &
+#       condition != "prac_matching_task" &
+#       condition != "prac_classify_self" &
+#       condition != "prac_classify_friend" &
+#       condition != "prac_classify_stranger"
+#   ) %>%
+#   mutate(
+#     year = as.numeric(year),
+#     year = 2025 - year,
+#     acc = ifelse(correct == "true", 1, 0),
+#     Identity = case_when(
+#       shape == "自我" ~ "self",
+#       shape == "朋友" ~ "friend",
+#       shape == "生人" ~ "stranger",
+#     ),
+#     Label = case_when(
+#       word == "自我" ~ "self",
+#       word == "朋友" ~ "friend",
+#       word == "生人" ~ "stranger",
+#     ),
+#     ismatch = ifelse(Identity == Label, 1, 0)
+#   ) %>%
+#   # 剔除无关变量
+#   select(
+#     -trial_type, 
+#     -correct,
+#     -shape,
+#     -word,
+#     )
+# df
+# 
+# write.csv(df, file = "exp1_raw.csv", row.names = FALSE, fileEncoding = "UTF-8")
+# 
+# # length(unique(df$subj_idx))   # 查看被试总数
+# # 60
 
 ```
 
 ```{r}
+# 读取原始数据
+df <- read.csv("exp1_raw.csv", fileEncoding = "UTF-8")
+
 # 正确率低于0.7的被试
 df.excld.sub <-  df %>%
         dplyr::group_by(subj_idx) %>%
@@ -722,6 +727,8 @@ df_rt_pop <- var_both_rt_model %>%
   value = value *1000)
 # summary(df_rt_pop)
 
+df_rt_pop
+
 ```
 
 
@@ -753,7 +760,25 @@ df_rt_pop_diff_wide <- df_rt_pop %>%
     diff_diff_SF_PSF, diff_diff_SF_PSStr, diff_diff_SStr_PSF, diff_diff_SStr_PSStr
   )
 
+df_rt_pop_diff_wide
 ```
+
+```{r}
+# 固定效应，条件间差异分布
+df_rt_main_effect <- df_rt_pop %>%
+  tidyr::pivot_wider(names_from = c(term), values_from = value) %>%
+  dplyr::mutate(
+    RT_Self = (Self_PSelf + Self_PFriend + Self_PStranger)/3,
+    RT_Friend = (Friend_PSelf + Friend_PFriend + Friend_PStranger)/3,
+    RT_Stranger = (Stranger_PSelf + Stranger_PFriend + Stranger_PStranger)/3,
+  )%>%
+  dplyr::select(`.chain`, `.iteration`, `.draw`,
+    RT_Self, RT_Friend, RT_Stranger
+  )
+
+df_rt_main_effect
+```
+
 
 ```{r}
 # 固定效应，后验分布描述
@@ -770,7 +795,32 @@ df_rt_fixed <- df_rt_pop%>%
   tidyr::separate(Parameter, c('Identity', 'priority')) %>%
   dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Friend', 'Stranger')),
                 priority = factor(priority, levels = c('PSelf', 'PFriend', 'PStranger')))
+df_rt_fixed
 ```
+
+
+```{r}
+df_rt_main <- df_rt_pop%>%
+  tidyr::pivot_wider(.,
+                     id_cols = c('.chain', '.iteration', '.draw'),
+                     names_from = term ) %>%
+    dplyr::mutate(
+    RT_Self = (Self_PSelf + Self_PFriend + Self_PStranger)/3,
+    RT_Friend = (Friend_PSelf + Friend_PFriend + Friend_PStranger)/3,
+    RT_Stranger = (Stranger_PSelf + Stranger_PFriend + Stranger_PStranger)/3,
+  )%>%
+  dplyr::select(
+    RT_Self, RT_Friend, RT_Stranger
+  )%>%
+  bayestestR::describe_posterior(.,
+                                 ci = 0.95,
+                                 ci_method = 'hdi',
+                                 test = c("p_direction", "p_significance"),
+                                 centrality = "median")
+df_rt_main
+```
+
+
 
 ```{r}
 # 各条件中位数及可信区间
@@ -820,8 +870,14 @@ ul_rt_Stranger_PStranger <- round(df_rt_fixed$CI_high[df_rt_fixed$Identity == 'S
 
 ```{r}
 # 基于sexit框架进行统计推断
+## 任务目标的调节效应
 bayestestR::sexit(df_rt_pop_diff_wide[,c(4:16)])
 ```
+
+```{r}
+bayestestR::sexit(df_rt_main_effect[,c(4:6)])
+```
+
 
 
 ### （6）结果可视化
