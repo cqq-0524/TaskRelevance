@@ -26,4 +26,4 @@
 .Rhistory
 
 # ignore logs
-# *.rds
+*.rds
