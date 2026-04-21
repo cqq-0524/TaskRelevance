@@ -472,7 +472,7 @@ plot_rt_m <- plot_cond_rt_m +
   ggplot2::scale_color_discrete(name = "身份")
 
 plot_rt_m
-# ggplot2::ggsave(file.path(figDir, "RT_observed_data.png"))
+ggplot2::ggsave(file.path(figDir, "RT_observed_data.png"))
 
 
 ```
@@ -549,7 +549,7 @@ plot_acc <- plot_cond_acc +
   ggplot2::scale_color_discrete(name = "身份")
 
 plot_acc
-# ggplot2::ggsave(file.path(figDir, "ACC_observed_data.png"))
+ggplot2::ggsave(file.path(figDir, "ACC_observed_data.png"))
 
 ```
 
@@ -1042,7 +1042,7 @@ p_tr_rt <- df_tr_rt_pop %>%
   ggplot2::geom_vline(data = vlines,
              aes(xintercept = Mean, color = Identity),
              linetype = "dashed") +
-  ggplot2::facet_wrap( ~ ismatch, nrow = 2) +
+  ggplot2::facet_wrap( ~ ismatch, nrow = 1) +
   ggplot2::scale_colour_brewer(palette = "Dark2") +
   ggplot2::scale_fill_brewer(palette = "Dark2")+
   ggplot2::labs(x = expression('反应时后验分布'),
@@ -1054,7 +1054,7 @@ p_tr_rt <- df_tr_rt_pop %>%
 # theme_apa()
 p_tr_rt
 
-# ggsave(file.path(figDir, "Tr_RT.png"))
+ggsave(file.path(figDir, "Tr_RT.png"))
 ```
 
 ```{r}
@@ -1074,12 +1074,12 @@ df_tr_rt_pop_diff <- df_tr_rt_pop_diff_wide %>%
       'diff_SF_Match','diff_SStr_Match','diff_FStr_Match',
       'diff_SF_NonMatch', 'diff_SStr_NonMatch', 'diff_FStr_NonMatch'),
     labels = c(
-      "(RT[自我] - RT[朋友])[匹配]",
-      "(RT[自我] - RT[生人])[匹配]",
-      "(RT[朋友] - RT[生人])[匹配]",
-      "(RT[自我] - RT[朋友])[不匹配]",
-      "(RT[自我] - RT[生人])[不匹配]",
-      "(RT[朋友] - RT[生人])[不匹配]"
+      "(RT[朋友] - RT[自我])[匹配]",
+      "(RT[生人] - RT[自我])[匹配]",
+      "(RT[生人] - RT[朋友])[匹配]",
+      "(RT[朋友] - RT[自我])[不匹配]",
+      "(RT[生人] - RT[自我])[不匹配]",
+      "(RT[生人] - RT[朋友])[不匹配]"
     )
   ))
 
@@ -1101,7 +1101,7 @@ p_tr_rt_diff <- df_tr_rt_pop_diff %>%
 p_tr_rt_diff
 
 
-# ggsave(file.path(figDir, "Tr_RT_diff.png"))
+ggsave(file.path(figDir, "Tr_RT_diff.png"))
 
 
 ```
@@ -1377,7 +1377,7 @@ p_sdt_rt <- df_tr_sdt_pop %>%
 # theme_apa()
 
 p_sdt_rt
-# ggsave(file.path(figDir, "Tr_dprime.png"))
+ggsave(file.path(figDir, "Tr_dprime.png"))
 ```
 
 ```{r}
@@ -1415,14 +1415,14 @@ p_tr_sdt_diff <- df_tr_sdt_pop_diff %>%
     name = "dprime差异" ,
     labels = c(">0", "<0")
   ) +
-  xlab("各条件dprime差异分布") +
+  xlab("任务有关，dprime差异分布") +
    facet_wrap( ~ term_diff, nrow = 3, 
               labeller = labeller(term_diff = label_parsed))
 
 p_tr_sdt_diff
 
 
-# ggsave(file.path(figDir, "Tr_dprime_diff.png"))
+ggsave(file.path(figDir, "Tr_dprime_diff.png"))
 
 ```
 
@@ -1732,7 +1732,7 @@ p_tir_rt <- df_tir_rt_pop %>%
   geom_vline(data = vlines,
              aes(xintercept = Mean, color = Identity),
              linetype = "dashed") +
-  facet_wrap( ~ ismatch, nrow = 2) +
+  facet_wrap( ~ ismatch, nrow = 1) +
   scale_colour_brewer(palette = "Dark2") +
   scale_fill_brewer(palette = "Dark2")+
   ggplot2::labs(x = expression('反应时后验分布'),
@@ -1741,7 +1741,7 @@ p_tir_rt <- df_tir_rt_pop %>%
                 )
 # theme_apa()
 p_tir_rt
-# ggsave(file.path(figDir, "Tir_RT.png"))
+ggsave(file.path(figDir, "Tir_RT.png"))
 ```
 
 ```{r}
@@ -1761,12 +1761,12 @@ df_tir_rt_pop_diff <- df_tir_rt_pop_diff_wide %>%
       'diff_SF_Match','diff_SStr_Match','diff_FStr_Match',
       'diff_SF_NonMatch', 'diff_SStr_NonMatch', 'diff_FStr_NonMatch'),
     labels = c(
-      "(RT[自我] - RT[朋友])[匹配]",
-      "(RT[自我] - RT[生人])[匹配]",
-      "(RT[朋友] - RT[生人])[匹配]",
-      "(RT[自我] - RT[朋友])[不匹配]",
-      "(RT[自我] - RT[生人])[不匹配]",
-      "(RT[朋友] - RT[生人])[不匹配]"
+      "(RT[朋友] - RT[自我])[匹配]",
+      "(RT[生人] - RT[自我])[匹配]",
+      "(RT[生人] - RT[朋友])[匹配]",
+      "(RT[朋友] - RT[自我])[不匹配]",
+      "(RT[生人] - RT[自我])[不匹配]",
+      "(RT[生人] - RT[朋友])[不匹配]"
     )
   ))
 
@@ -1787,7 +1787,7 @@ p_tir_rt_diff <- df_tir_rt_pop_diff %>%
 
 p_tir_rt_diff
 
-# ggsave(file.path(figDir, "Tir_RT_diff.png"))
+ggsave(file.path(figDir, "Tir_RT_diff.png"))
 
 ```
 
@@ -2036,7 +2036,7 @@ p_sdt <- df_tir_sdt_pop %>%
 # theme_apa()
 
 p_sdt
-# ggsave(file.path(figDir, "Tir_dprime.png"))
+ggsave(file.path(figDir, "Tir_dprime.png"))
 ```
 
 ```{r}
@@ -2074,13 +2074,13 @@ p_tir_sdt_diff <- df_tir_sdt_pop_diff %>%
     name = "dprime差异" ,
     labels = c(">0", "<0")
   ) +
-  xlab("各条件dprime差异分布") +
+  xlab("任务无关，dprime差异分布") +
   facet_wrap( ~ term_diff, nrow = 3, 
               labeller = labeller(term_diff = label_parsed)) 
 
 p_tir_sdt_diff
 
-# ggsave(file.path(figDir, "Tir_dprime_diff.png"))
+ggsave(file.path(figDir, "Tir_dprime_diff.png"))
 
 ```
 

@@ -304,12 +304,16 @@ df.rt.plot <- data %>%
   dplyr::mutate(
     ismatch = case_when(ismatch == "1" ~ "match", ismatch == "0" ~ "mismatch"),
     conds = case_when(
-      ismatch == "match" & Identity == "self" ~ "0.7",
-      ismatch == "match" & Identity == "stranger" ~ "1",
-      ismatch == "mismatch" & Identity == "self" ~ "1.7",
-      ismatch == "mismatch" & Identity == "stranger" ~ "2",
+      ismatch == "match" & Identity == "self" ~ 0.8,
+      ismatch == "match" & Identity == "stranger" ~ 1.2,
+      ismatch == "mismatch" & Identity == "self" ~ 1.8,
+      ismatch == "mismatch" & Identity == "stranger" ~ 2.2,
     ),
-    conds = as.numeric(conds)
+    # conds = factor(conds),
+    CognitiveLoad = factor(CognitiveLoad, 
+                           levels = c("High", "Low"),
+                           labels = c("高负荷", "低负荷")),
+    Identity = factor(Identity, levels = c("self", "stranger"), labels = c("自我", "生人"))
   )
 
 # 计算各条件均值与标准误
@@ -355,7 +359,9 @@ plot_rt_m <- plot_cond_rt_m +
                      linewidth=0.8,
                      color="#000000",
                      alpha=0.05) +
-  ggplot2::labs(y = "RT")
+  ggplot2::scale_x_continuous(breaks = c(1, 2), labels = c("匹配", "不匹配")) +
+  ggplot2::labs(y = "反应时", x = NULL) +
+  ggplot2::scale_color_discrete(name = "身份")
 
 return(plot_rt_m)
 }
@@ -365,6 +371,10 @@ plot.tr.rt_m
 
 plot.tir.rt_m <- plot_rt_m(df.subj.tir.rt_m)
 plot.tir.rt_m
+
+# 保存两张图
+ggsave("figures/RT_observed_data_TR.png", plot = plot.tr.rt_m)
+ggsave("figures/RT_observed_data_TIR.png", plot = plot.tir.rt_m)
 ```
 
 ## 2、ACC数据
@@ -376,13 +386,17 @@ plot_acc <- function(data) {
 df.acc.plot <- data %>%
   dplyr::mutate(
     ismatch = case_when(ismatch == "1" ~ "match", ismatch == "0" ~ "mismatch"),
-    conds = case_when(
-      ismatch == "match" & Identity == "self" ~ "0.7",
-      ismatch == "match" & Identity == "stranger" ~ "1",
-      ismatch == "mismatch" & Identity == "self" ~ "1.7",
-      ismatch == "mismatch" & Identity == "stranger" ~ "2",
+     conds = case_when(
+      ismatch == "match" & Identity == "self" ~ 0.8,
+      ismatch == "match" & Identity == "stranger" ~ 1.2,
+      ismatch == "mismatch" & Identity == "self" ~ 1.8,
+      ismatch == "mismatch" & Identity == "stranger" ~ 2.2,
     ),
-    conds = as.numeric(conds)
+    # conds = factor(conds),
+    CognitiveLoad = factor(CognitiveLoad, 
+                           levels = c("High", "Low"),
+                           labels = c("高负荷", "低负荷")),
+    Identity = factor(Identity, levels = c("self", "stranger"), labels = c("自我", "生人"))
   )
 
 # 计算各条件均值
@@ -421,7 +435,9 @@ plot_acc <- plot_cond_acc +
                      linewidth=0.8,
                      color="#000000",
                      alpha=0.05) +
-  ggplot2::labs(y = "ACC")
+  ggplot2::scale_x_continuous(breaks = c(1, 2), labels = c("匹配", "不匹配")) +
+  ggplot2::labs(y = "正确率", x = NULL) +
+  ggplot2::scale_color_discrete(name = "身份")
 
 return(plot_acc)
 
@@ -432,6 +448,9 @@ plot.tr.acc
 
 plot.tir.acc <- plot_acc(df.subj.tir.acc)
 plot.tir.acc
+
+ggsave("figures/ACC_observed_data_TR.png", plot = plot.tr.acc)
+ggsave("figures/ACC_observed_data_TIR.png", plot = plot.tir.acc)
 
 ```
 
@@ -789,27 +808,40 @@ plot(conditional_effects(var_both_tr_rt_model),plot = FALSE)[3]
 ## 固定效应均值
 vlines <- df_tr_rt_pop %>%
   tidyr::separate(term, c('Identity', 'CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'))) %>%
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷"))) %>%
   dplyr::group_by(Identity, CognitiveLoad) %>%
   dplyr::summarize(Mean = mean(value))
 
 ## 各个条件RT后验分布
 p_tr_rt <- df_tr_rt_pop %>%
   tidyr::separate(term, c('Identity', 'CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'))) %>%
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷"))) %>%
   ggplot2::ggplot(., aes(x = value, color = Identity)) +
   tidybayes::stat_halfeye(aes(fill = Identity), alpha = 0.6) +
   geom_vline(data = vlines,
              aes(xintercept = Mean, color = Identity),
              linetype = "dashed") +
   facet_wrap( ~ CognitiveLoad, nrow = 1) +
-  labs(x = expression('Posteior distribution of reaction times'))+
-  scale_colour_brewer(palette = "Dark2") +
-  scale_fill_brewer(palette = "Dark2")
+  ggplot2::labs(x = expression('反应时后验分布'),
+                color = "身份",
+                fill = "身份",
+                )+
+  ggplot2::scale_color_manual(
+    values = c("自我" = "#009E73",  # 自我 = 粉色
+               "生人" = "#7570B3"), # 生人 = 青蓝色
+    name = "身份"
+  ) +
+  ggplot2::scale_fill_manual(
+    values = c("自我" = "#009E73",  # 填充色保持和边框一致
+               "生人" = "#7570B3"),
+    name = "身份"
+  )
 # theme_apa()
 p_tr_rt
+
+ggsave(file.path(figDir, "Tr_RT.png"), width = 10)
 ```
 
 ```{r}
@@ -826,26 +858,29 @@ df_tr_rt_pop_diff <- df_tr_rt_pop_diff_wide %>%
   dplyr::mutate(term_diff = factor(
     term_diff,
     levels = c(
-      'diff_SStr_Low','diff_SStr_High')
+      'diff_SStr_Low','diff_SStr_High'),
+    labels = c(
+      "(RT[生人] - RT[自我])[低负荷]",
+    "(RT[生人] - RT[自我])[高负荷]")
   ))
 
 
 p_tr_rt_diff <- df_tr_rt_pop_diff %>%
-  ggplot2::ggplot(aes(x = value, fill = after_stat(x < 0))) +   # RT：self快于friend/stranger(SPE)
+  ggplot2::ggplot(aes(x = value, fill = after_stat(x > 0))) +   # RT：self快于friend/stranger(SPE)
   tidybayes::stat_halfeye() +
   geom_vline(xintercept = 0, linetype = "dashed") + # 添加x=0的垂线
   scale_fill_manual(
-    values = c('#2980B9', '#E74C3C'),# 蓝色出现在true组，红色出现在false组
+    values = c('#E74C3C', '#2980B9'),# 蓝色出现在true组，红色出现在false组
     breaks = c(TRUE, FALSE),
     name = "Effect" ,
-    labels = c("<0", ">0")# 标签yes表示x<0
+    labels = c(">0", "<0")# 标签yes表示x>0
   ) +
-  xlab("各条件反应时差异分布") +
-  facet_wrap( ~ term_diff, nrow = 1, ) 
+  xlab("任务有关条件，反应时差异分布") +
+  facet_wrap( ~ term_diff, nrow = 1, labeller = labeller(term_diff = label_parsed)) 
 
 p_tr_rt_diff
 
-# ggsave(file.path(figDir, "diff_compare.png"))
+ggsave(file.path(figDir, "RT_diff_compare.png"))
 
 ```
 
@@ -1066,8 +1101,8 @@ plot(conditional_effects(var_both_tr_sdt_model))
 vlines <- df_tr_sdt_pop %>%
   tidyr::unite(term, c('params', 'Identity', 'CognitiveLoad')) %>%
   tidyr::separate(term, c('params', 'Identity','CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High')),
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷")),
                 params = factor(params, levels = c('c', 'dprime'))) %>%
   dplyr::filter(params == 'dprime') %>%
   dplyr::group_by(Identity, CognitiveLoad) %>%
@@ -1077,8 +1112,8 @@ vlines <- df_tr_sdt_pop %>%
 p_sdt_rt <- df_tr_sdt_pop %>%
   tidyr::unite(term, c('params', 'Identity', 'CognitiveLoad')) %>%
   tidyr::separate(term, c('params', 'Identity', 'CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High')),
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷")),
                 params = factor(params, levels = c('c', 'dprime'))) %>%
   dplyr::filter(params == 'dprime') %>%
   ggplot2::ggplot(aes(x = value, color = Identity)) +
@@ -1087,12 +1122,25 @@ p_sdt_rt <- df_tr_sdt_pop %>%
              aes(xintercept = Mean, color = Identity),
              linetype = "dashed") +
   facet_wrap(~CognitiveLoad) + 
-  labs(x = expression('Posteior distribution of ACC')) +
-  scale_colour_brewer(palette = "Dark2") +
-  scale_fill_brewer(palette = "Dark2")
+  ggplot2::labs(x = expression('dprime后验分布'),
+                color = "身份",
+                fill = "身份",
+                )+
+  ggplot2::scale_color_manual(
+    values = c("自我" = "#009E73",  # 自我 = 粉色
+               "生人" = "#7570B3"), # 生人 = 青蓝色
+    name = "身份"
+  ) +
+  ggplot2::scale_fill_manual(
+    values = c("自我" = "#009E73",  # 填充色保持和边框一致
+               "生人" = "#7570B3"),
+    name = "身份"
+  )
 # theme_apa()
 
 p_sdt_rt
+
+ggsave(file.path(figDir, "Tr_dprime.png"), width = 10)
 ```
 
 ```{r}
@@ -1102,18 +1150,22 @@ p_sdt_rt
 p_tr_sdt_diff_SStr <- df_tr_sdt_pop_diff_wide %>%
   tidyr::pivot_longer(cols = diff_SStr_dprm_L:diff_diff_SStr, names_to = "term_diff", values_to =  "value")%>%
   dplyr::filter(str_detect(term_diff, '_dprm_L|_dprm_H')) %>%
-  dplyr::mutate(term_diff = factor(term_diff,levels = c('diff_SStr_dprm_L', 'diff_SStr_dprm_H')))%>%
+  dplyr::mutate(term_diff = factor(term_diff,
+                                   levels = c('diff_SStr_dprm_L', 'diff_SStr_dprm_H'), 
+                                   labels = c(
+                                     "(dprime[自我] - dprime[生人])[低负荷]",
+                                     "(dprime[自我] - dprime[生人])[高负荷]")))%>%
   ggplot2::ggplot(aes(x = value, fill = after_stat(x > 0))) +   # dprime：self大于friend/stranger(SPE)
   tidybayes::stat_halfeye() +
   geom_vline(xintercept = 0, linetype = "dashed") + # 添加x=0的垂线
   scale_fill_manual(
-    values = c('#2980B9', '#E74C3C'),# 蓝色出现在true组，红色出现在false组
+    values = c('#E74C3C', '#2980B9'),# 蓝色出现在true组，红色出现在false组
     breaks = c(TRUE, FALSE),
     name = "Effect" ,
-    labels = c("<0", ">0")# 标签yes表示x<0
+    labels = c(">0", "<0")# 标签yes表示x>0
   ) +
-  xlab("各条件dprime差异分布") +
-  facet_wrap( ~ term_diff, nrow = 1, ) 
+  xlab("任务有关条件，dprime差异分布") +
+  facet_wrap( ~ term_diff, nrow = 1, labeller = labeller(term_diff = label_parsed)) 
 
 
 # p_tr_sdt_diff_LH <- df_tr_sdt_pop_diff_wide %>%
@@ -1137,7 +1189,7 @@ p_tr_sdt_diff_SStr
 
 # p_tr_sdt_diff_LH
 
-# ggsave(file.path(figDir, "diff_compare.png"))
+ggsave(file.path(figDir, "TR_diff_compare_dprime.png"))
 
 ```
 
@@ -1328,27 +1380,40 @@ plot(conditional_effects(var_both_tir_rt_model),plot = FALSE)[3]
 ## 固定效应均值
 vlines <- df_tir_rt_pop %>%
   tidyr::separate(term, c('Identity', 'CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'))) %>%
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷"))) %>%
   dplyr::group_by(Identity, CognitiveLoad) %>%
   dplyr::summarize(Mean = mean(value))
 
 ## 各个条件RT后验分布
 p_tir_rt <- df_tir_rt_pop %>%
   tidyr::separate(term, c('Identity', 'CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'))) %>%
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷"))) %>%
   ggplot2::ggplot(., aes(x = value, color = Identity)) +
   tidybayes::stat_halfeye(aes(fill = Identity), alpha = 0.6) +
   geom_vline(data = vlines,
              aes(xintercept = Mean, color = Identity),
              linetype = "dashed") +
   facet_wrap( ~ CognitiveLoad, nrow = 1) +
-  labs(x = expression('Posteior distribution of reaction times'))+
-  scale_colour_brewer(palette = "Dark2") +
-  scale_fill_brewer(palette = "Dark2")
+  ggplot2::labs(x = expression('反应时后验分布'),
+                color = "身份",
+                fill = "身份",
+                )+
+  ggplot2::scale_color_manual(
+    values = c("自我" = "#009E73",  # 自我 = 粉色
+               "生人" = "#7570B3"), # 生人 = 青蓝色
+    name = "身份"
+  ) +
+  ggplot2::scale_fill_manual(
+    values = c("自我" = "#009E73",  # 填充色保持和边框一致
+               "生人" = "#7570B3"),
+    name = "身份"
+  )
 # theme_apa()
 p_tir_rt
+
+ggsave(file.path(figDir, "TIR_RT.png"), width = 10)
 ```
 
 ```{r}
@@ -1365,26 +1430,29 @@ df_tir_rt_pop_diff <- df_tir_rt_pop_diff_wide %>%
   dplyr::mutate(term_diff = factor(
     term_diff,
     levels = c(
-      'diff_SStr_Low','diff_SStr_High')
+      'diff_SStr_Low','diff_SStr_High'),
+    labels = c(
+      "(RT[生人] - RT[自我])[低负荷]",
+    "(RT[生人] - RT[自我])[高负荷]")
   ))
 
 
 p_tir_rt_diff <- df_tir_rt_pop_diff %>%
-  ggplot2::ggplot(aes(x = value, fill = after_stat(x < 0))) +   # RT：self快于friend/stranger(SPE)
+  ggplot2::ggplot(aes(x = value, fill = after_stat(x > 0))) +   # RT：self快于friend/stranger(SPE)
   tidybayes::stat_halfeye() +
   geom_vline(xintercept = 0, linetype = "dashed") + # 添加x=0的垂线
   scale_fill_manual(
-    values = c('#2980B9', '#E74C3C'),# 蓝色出现在true组，红色出现在false组
+    values = c('#E74C3C', '#2980B9'),
     breaks = c(TRUE, FALSE),
     name = "Effect" ,
-    labels = c("<0", ">0")# 标签yes表示x<0
+    labels = c(">0", "<0")# 标签yes表示x>0
   ) +
-  xlab("各条件反应时差异分布") +
-  facet_wrap( ~ term_diff, nrow = 1, ) 
+  xlab("任务无关条件，反应时差异分布") +
+  facet_wrap( ~ term_diff, nrow = 1, labeller = labeller(term_diff = label_parsed)) 
 
 p_tir_rt_diff
 
-# ggsave(file.path(figDir, "diff_compare.png"))
+ggsave(file.path(figDir, "TIR_diff_compare_RT.png"))
 
 ```
 
@@ -1598,8 +1666,8 @@ plot(conditional_effects(var_both_tir_sdt_model),plot = FALSE)[2]
 vlines <- df_tir_sdt_pop %>%
   tidyr::unite(term, c('params', 'Identity', 'CognitiveLoad')) %>%
   tidyr::separate(term, c('params', 'Identity','CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High')),
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷")),
                 params = factor(params, levels = c('c', 'dprime'))) %>%
   dplyr::filter(params == 'dprime') %>%
   dplyr::group_by(Identity, CognitiveLoad) %>%
@@ -1609,8 +1677,8 @@ vlines <- df_tir_sdt_pop %>%
 p_sdt_rt <- df_tir_sdt_pop %>%
   tidyr::unite(term, c('params', 'Identity', 'CognitiveLoad')) %>%
   tidyr::separate(term, c('params', 'Identity', 'CognitiveLoad')) %>%
-  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger')),
-                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High')),
+  dplyr::mutate(Identity = factor(Identity, levels = c('Self', 'Stranger'), labels = c("自我", "生人")),
+                CognitiveLoad = factor(CognitiveLoad, levels = c('Low', 'High'), labels = c("低负荷", "高负荷")),
                 params = factor(params, levels = c('c', 'dprime'))) %>%
   dplyr::filter(params == 'dprime') %>%
   ggplot2::ggplot(aes(x = value, color = Identity)) +
@@ -1619,12 +1687,25 @@ p_sdt_rt <- df_tir_sdt_pop %>%
              aes(xintercept = Mean, color = Identity),
              linetype = "dashed") +
   facet_wrap(~CognitiveLoad) + 
-  labs(x = expression('Posteior distribution of ACC')) +
-  scale_colour_brewer(palette = "Dark2") +
-  scale_fill_brewer(palette = "Dark2")
+  ggplot2::labs(x = expression('dprime后验分布'),
+                color = "身份",
+                fill = "身份",
+                )+
+  ggplot2::scale_color_manual(
+    values = c("自我" = "#009E73",  # 自我 = 粉色
+               "生人" = "#7570B3"), # 生人 = 青蓝色
+    name = "身份"
+  ) +
+  ggplot2::scale_fill_manual(
+    values = c("自我" = "#009E73",  # 填充色保持和边框一致
+               "生人" = "#7570B3"),
+    name = "身份"
+  )
 # theme_apa()
 
 p_sdt_rt
+
+ggsave(file.path(figDir, "TIR_dprime.png"), width = 10)
 ```
 
 ```{r}
@@ -1634,18 +1715,22 @@ p_sdt_rt
 p_tir_sdt_diff_SStr <- df_tir_sdt_pop_diff_wide %>%
   tidyr::pivot_longer(cols = diff_SStr_dprm_L:diff_diff_SStr, names_to = "term_diff", values_to =  "value")%>%
   dplyr::filter(str_detect(term_diff, '_dprm_L|_dprm_H')) %>%
-  dplyr::mutate(term_diff = factor(term_diff,levels = c('diff_SStr_dprm_L', 'diff_SStr_dprm_H')))%>%
+  dplyr::mutate(term_diff = factor(term_diff,
+                                   levels = c('diff_SStr_dprm_L', 'diff_SStr_dprm_H'), 
+                                   labels = c(
+                                     "(dprime[自我] - dprime[生人])[低负荷]",
+                                     "(dprime[自我] - dprime[生人])[高负荷]")))%>%
   ggplot2::ggplot(aes(x = value, fill = after_stat(x > 0))) +   # dprime：self大于friend/stranger(SPE)
   tidybayes::stat_halfeye() +
   geom_vline(xintercept = 0, linetype = "dashed") + # 添加x=0的垂线
   scale_fill_manual(
-    values = c('#2980B9', '#E74C3C'),# 蓝色出现在true组，红色出现在false组
+    values = c('#E74C3C', '#2980B9'),# 蓝色出现在true组，红色出现在false组
     breaks = c(TRUE, FALSE),
     name = "Effect" ,
-    labels = c("<0", ">0")# 标签yes表示x<0
+    labels = c(">0", "<0")# 标签yes表示x>0
   ) +
-  xlab("各条件dprime差异分布") +
-  facet_wrap( ~ term_diff, nrow = 1, ) 
+  xlab("任务无关条件，dprime差异分布") +
+  facet_wrap( ~ term_diff, nrow = 1, labeller = labeller(term_diff = label_parsed)) 
 
 
 # p_tir_sdt_diff_LH <- df_tir_sdt_pop_diff_wide %>%
@@ -1669,7 +1754,7 @@ p_tir_sdt_diff_SStr
 
 # p_tir_sdt_diff_LH
 
-# ggsave(file.path(figDir, "diff_compare.png"))
+ggsave(file.path(figDir, "TIR_diff_compare_dprime.png"))
 
 ```
 
